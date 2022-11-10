@@ -34,7 +34,7 @@ pipeline {
         expression { return params.BUILD_DOCKER_IMAGE }
       }
       steps {
-        dir("${env.WORKSPACE}") {
+        dir("${env.WORKSPACE}/pipeline") {
           sh'''
             docker build -t ${DOCKER_IMAGE} .
           '''
