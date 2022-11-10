@@ -1,9 +1,9 @@
-FROM python3.8 AS builder
+FROM python:3.8 AS builder
 COPY app/requirements.txt .
 
 RUN pip3 install --user -r requirements.txt
 
-FROM python3.8-slim
+FROM python:3.8-slim
 WORKDIR /app
 
 COPY --from=builder /root/.local /root/.local
