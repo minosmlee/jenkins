@@ -36,8 +36,8 @@ pipeline {
       steps {
         dir("${env.WORKSPACE}/pipeline") {
           sh'''
-            echo ${env.WORKSPACE}
-
+            cd 
+            docker build -t ${DOCKER_IMAGE} .
           '''
         }
       }
