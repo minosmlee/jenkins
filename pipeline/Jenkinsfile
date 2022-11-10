@@ -63,9 +63,9 @@ pipeline {
         //   env.DOCKER_ACCOUNT_PASSWORD = input message: "Enter the password for Docker Hub "
         // }
 
-        sh '''
-          echo "${DOCKER_ACCOUNT_PASSWORD}" | docker login -u ${params.DOCKER_ACCOUNT_ID} --password-stdin
-        '''
+        sh """
+          echo ${DOCKER_ACCOUNT_PASSWORD} | docker login -u ${params.DOCKER_ACCOUNT_ID} --password-stdin
+        """
       }
       post {
         always {
