@@ -59,9 +59,9 @@ pipeline {
         expression { return params.PUSH_DOCKER_IMAGE }
       }
       steps {
-        script{
-          env.DOCKER_ACCOUNT_PASSWORD = input message: "Enter the password for Docker Hub ",
-        }
+        // script{
+        //   env.DOCKER_ACCOUNT_PASSWORD = input message: "Enter the password for Docker Hub ",
+        // }
 
         sh'''#!/bin/bash
           echo "${DOCKER_ACCOUNT_PASSWORD}" | docker login -u ${params.DOCKER_ACCOUNT_ID} --password-stdin &&
