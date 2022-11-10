@@ -64,7 +64,7 @@ pipeline {
         }
 
         sh'''#!/bin/bash
-          echo "${DOCKER_ACCOUNT_PASSWORD}" | docker login -u ${params.DOCKER_ACCOUNT_ID} --password-stdin
+          echo "${DOCKER_ACCOUNT_PASSWORD}" | docker login -u ${params.DOCKER_ACCOUNT_ID} --password-stdin &&
           docker push ${DOCKER_IMAGE}
         '''
       }
