@@ -11,9 +11,9 @@ pipeline {
     booleanParam(name: 'DEPLOY_WORKLOAD', defaultValue: true)
 
     // CI
-    string(name: 'AWS_ACCOUNT_ID', defaultValue: '123456789012', description: 'AWS Account ID')
-    string(name: 'DOCKER_IMAGE_NAME', defaultValue: 'demo', description: 'Docker image name')
-    string(name: 'DOCKER_IMAGE_TAG', defaultValue: '1', description: 'Docker image tag')
+    string(name: 'DOCKER_ACCOUNT_ID', defaultValue: 'minosmlee', description: 'Docker Account ID')
+    string(name: 'DOCKER_IMAGE_NAME', defaultValue: 'simple-flask-app', description: 'Docker image name')
+    string(name: 'DOCKER_IMAGE_TAG', defaultValue: 'v1', description: 'Docker image tag')
 
     // CD
     string(name: 'TARGET_SVR_USER', defaultValue: 'ec2-user', description: 'Target server user')
@@ -23,9 +23,7 @@ pipeline {
 
   environment {
     // key = 'value'
-    REGION = 'ap-northeast-2'
-    ECR_REGISTRY = "${params.AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
-    DOCKER_IMAGE = "${ECR_REGISTRY}/${params.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG}"
+    DOCKER_IMAGE = "${params.DOCKER_ACCOUNT_ID}/${params.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG}"
   }
 
   stages {
@@ -37,12 +35,14 @@ pipeline {
       }
       steps {
         dir("${env.WORKSPACE}") {
-          sh 'docker build -t ${DOCKER_IMAGE} .'
+          sh'''
+            docker build -t ${DOCKER_IMAGE} .
+          '''
         }
       }
       post {
         always {
-          echo 'Docker build success'
+          echo 'Docker image build success'
         }
       }
     }
@@ -51,7 +51,7 @@ pipeline {
         expression { return params.RUN_TEST_CODE }
       }
       steps {
-        sh('docker run --rm ${DOCKER_IMAGE} /root/.local/bin/pytest -v')
+        echo "Run test code"
       }
     }
     stage('==== Push Docker Image ====') {
@@ -60,9 +60,13 @@ pipeline {
       }
       steps {
         sh'''
-          aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-          'docker push ${DOCKER_IMAGE}')
+          docker push ${DOCKER_IMAGE}
         '''
+      }
+      post {
+        always {
+          echo 'Docker image push success'
+        }
       }
     }
     stage('==== Deploy Worksload ====') {
@@ -70,24 +74,25 @@ pipeline {
         expression { return params.DEPLOY_WORKLOAD }
       }
       steps {
-        sshagent (credentials: ['aws_ssh']) {
-          sh '''
-            #!/bin/bash
+        echo "Deploy workload"
+        // sshagent (credentials: ['aws_ssh']) {
+        //   sh'''
+        //     #!/bin/bash
 
-            scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-              deploy/docker-compose.yml \
-              ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP}:${params.TARGET_SVR_PATH}
+        //     scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+        //       deploy/docker-compose.yml \
+        //       ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP}:${params.TARGET_SVR_PATH}
             
-            ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-              ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP} \
-              "aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}; \
-               export IMAGE=${params.DOCKER_IMAGE_NAME}; \
-               export TAG=${params.DOCKER_IMAGE_TAG}; \
-               docker-compose -f docker-compose.yml down; \
-               docker-compose -f docker-compose.yml up -d"
+        //     ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+        //       ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP} \
+        //       "aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}; \
+        //        export IMAGE=${params.DOCKER_IMAGE_NAME}; \
+        //        export TAG=${params.DOCKER_IMAGE_TAG}; \
+        //        docker-compose -f docker-compose.yml down; \
+        //        docker-compose -f docker-compose.yml up -d"
 
-          '''
-        }
+        //   '''
+        // }
       }
     }
   }
