@@ -12,6 +12,7 @@ pipeline {
 
     // CI
     string(name: 'DOCKER_ACCOUNT_ID', defaultValue: 'minosmlee', description: 'Docker Account ID')
+    password(name: 'DOCKER_ACCOUNT_PASSWORD', defaultValue: 'password', description: 'Docker Account Password')
     string(name: 'DOCKER_IMAGE_NAME', defaultValue: 'simple-flask-app', description: 'Docker image name')
     string(name: 'DOCKER_IMAGE_TAG', defaultValue: 'v1', description: 'Docker image tag')
 
@@ -60,6 +61,7 @@ pipeline {
       }
       steps {
         sh'''
+          echo "${params.DOCKER_ACCOUNT_PASSWORD}" | docker login -u ${params.DOCKER_ACCOUNT_ID} --password-stdin
           docker push ${DOCKER_IMAGE}
         '''
       }
