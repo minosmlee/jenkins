@@ -1,8 +1,12 @@
 #!/bin/bash
 
+# install snap first
+yum install -y snapd
+systemctl enable --now snapd.socket
+ln -sf /var/lib/snapd/snap /snap
+
 # install docker to use with jenkins
-yum install -y docker
-systemctl enalbe --now docker
+snap install -y docker
 groupadd -f docker
 chown root:docker /var/run/docker.sock
 
