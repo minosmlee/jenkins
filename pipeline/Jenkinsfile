@@ -60,7 +60,7 @@ pipeline {
       }
       steps {
         script{
-          env.DOCKER_ACCOUNT_PASSWORD = input message: "Enter the password for Docker Hub",
+          env.DOCKER_ACCOUNT_PASSWORD = input message: "Enter the password for Docker Hub ",
         }
 
         sh'''#!/bin/bash
