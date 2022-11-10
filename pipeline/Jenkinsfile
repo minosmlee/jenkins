@@ -61,7 +61,7 @@ pipeline {
       steps {
         script{
           env.DOCKER_ACCOUNT_PASSWORD = input message: "Enter the password for Docker Hub",
-            parameters: {password(name: 'DOCKER_ACCOUNT_PASSWORD', defaultValue: '', description: 'Docker Hub password')}
+            parameters: [password(name: 'DOCKER_ACCOUNT_PASSWORD', defaultValue: '', description: 'Docker Hub password')]
         }
         sh """
           echo ${DOCKER_ACCOUNT_PASSWORD} | docker login -u ${params.DOCKER_ACCOUNT_ID} --password-stdin
