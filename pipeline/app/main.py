@@ -17,7 +17,7 @@ def html():
 
 # create a new route to return json
 @app.route("/json")
-def json():
+def json2():
     return {"hello": "world"}
 
 
