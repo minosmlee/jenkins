@@ -60,7 +60,7 @@ pipeline {
         expression { return params.PUSH_DOCKER_IMAGE }
       }
       steps {
-        sh'''
+        sh'''#!/bin/bash
           echo "${params.DOCKER_ACCOUNT_PASSWORD}" | docker login -u ${params.DOCKER_ACCOUNT_ID} --password-stdin;
           docker push ${DOCKER_IMAGE}
         '''
