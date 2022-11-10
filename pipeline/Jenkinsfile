@@ -1,0 +1,102 @@
+pipeline {
+  // 전체 잡이 어떤 노드에서 실행될지?
+  agent any  
+
+  parameters {
+    // string(key: 'value', key: 'value')
+    // booleanParam(name: 'name', defaultValue: true, description: 'desc')
+    booleanParam(name: 'BUILD_DOCKER_IMAGE', defaultValue: true)
+    booleanParam(name: 'RUN_TEST_CODE', defaultValue: true)
+    booleanParam(name: 'PUSH_DOCKER_IMAGE', defaultValue: true)
+    booleanParam(name: 'DEPLOY_WORKLOAD', defaultValue: true)
+
+    // CI
+    string(name: 'AWS_ACCOUNT_ID', defaultValue: '123456789012', description: 'AWS Account ID')
+    string(name: 'DOCKER_IMAGE_NAME', defaultValue: 'demo', description: 'Docker image name')
+    string(name: 'DOCKER_IMAGE_TAG', defaultValue: '1', description: 'Docker image tag')
+
+    // CD
+    string(name: 'TARGET_SVR_USER', defaultValue: 'ec2-user', description: 'Target server user')
+    string(name: 'TARGET_SVR_IP', defaultValue: '10.0.3.163', description: 'Target server IP')
+    string(name: 'TARGET_SVR_PATH', defaultValue: '/home/ec2-user', description: 'Target server path')
+  }
+
+  environment {
+    // key = 'value'
+    REGION = 'ap-northeast-2'
+    ECR_REGISTRY = "${params.AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+    DOCKER_IMAGE = "${ECR_REGISTRY}/${params.DOCKER_IMAGE_NAME}:${params.DOCKER_IMAGE_TAG}"
+  }
+
+  stages {
+    stage('==== Build Docker Image ====') {
+      // 특정 스테이지만 어떤 노드에서 실행될지?
+      // agent {}
+      when {
+        expression { return params.BUILD_DOCKER_IMAGE }
+      }
+      steps {
+        dir("${env.WORKSPACE}") {
+          sh 'docker build -t ${DOCKER_IMAGE} .'
+        }
+      }
+      post {
+        always {
+          echo 'Docker build success'
+        }
+      }
+    }
+    stage('==== Run Test Code ====') {
+      when {
+        expression { return params.RUN_TEST_CODE }
+      }
+      steps {
+        sh('docker run --rm ${DOCKER_IMAGE} /root/.local/bin/pytest -v')
+      }
+    }
+    stage('==== Push Docker Image ====') {
+      when {
+        expression { return params.PUSH_DOCKER_IMAGE }
+      }
+      steps {
+        sh'''
+          aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+          'docker push ${DOCKER_IMAGE}')
+        '''
+      }
+    }
+    stage('==== Deploy Worksload ====') {
+      when {
+        expression { return params.DEPLOY_WORKLOAD }
+      }
+      steps {
+        sshagent (credentials: ['aws_ssh']) {
+          sh '''
+            #!/bin/bash
+
+            scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+              deploy/docker-compose.yml \
+              ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP}:${params.TARGET_SVR_PATH}
+            
+            ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+              ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP} \
+              "aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}; \
+               export IMAGE=${params.DOCKER_IMAGE_NAME}; \
+               export TAG=${params.DOCKER_IMAGE_TAG}; \
+               docker-compose -f docker-compose.yml down; \
+               docker-compose -f docker-compose.yml up -d"
+
+          '''
+        }
+      }
+    }
+  }
+  
+  post {
+    cleanup {
+      sh('docker image prune -f')
+      sh('docker container prune -f')
+    }
+  }
+
+}
