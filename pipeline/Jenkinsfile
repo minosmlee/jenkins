@@ -63,9 +63,9 @@ pipeline {
         //   env.DOCKER_ACCOUNT_PASSWORD = input message: "Enter the password for Docker Hub",
         //     parameters: [password(name: 'DOCKER_ACCOUNT_PASSWORD', defaultValue: '', description: 'Docker Hub password')]
         // }
-        withCredentials([usernamePassword(credentialsId: 'dockerhub_jenkins', passwordVariable: 'DOCKER_ACCOUNT_PASSWORD')]) {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub_jenkins', usernameVariable: 'DOCKER_ACCOUNT_ID', passwordVariable: 'DOCKER_ACCOUNT_PASSWORD')]) {
           sh """#!/bin/bash
-            echo ${DOCKER_ACCOUNT_PASSWORD} | docker login -u ${params.DOCKER_ACCOUNT_ID} --password-stdin
+            echo ${DOCKER_ACCOUNT_PASSWORD} | docker login -u ${DOCKER_ACCOUNT_ID} --password-stdin
             docker push ${DOCKER_IMAGE}
           """
         }
