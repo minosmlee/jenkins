@@ -1,6 +1,6 @@
 pipeline {
   // 전체 잡이 어떤 노드에서 실행될지?
-  agent any  
+  agent any
 
   parameters {
     // string(key: 'value', key: 'value')
@@ -30,7 +30,7 @@ pipeline {
 
   stages {
     stage('==== Build Docker Image ====') {
-      // 특정 스테이지만 어떤 노드에서 실행될지?
+      // 특정 스테이지만 어떤 노드에서 실행될지??
       // agent {}
       when {
         expression { return params.BUILD_DOCKER_IMAGE }
