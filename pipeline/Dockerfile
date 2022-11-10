@@ -1,9 +1,9 @@
-FROM python:3.8-slim-buster AS builder
+FROM python:3.8 AS builder
 COPY app/requirements.txt .
 
 RUN pip3 install -r requirements.txt
 
-FROM python:3.8-slim-buster
+FROM python:3.8-slim
 WORKDIR /app
 
 COPY --from=builder /root/.local /root/.local
