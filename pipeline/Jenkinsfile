@@ -16,9 +16,9 @@ pipeline {
     string(name: 'DOCKER_IMAGE_TAG', defaultValue: 'v1', description: 'Docker image tag')
 
     // CD
-    string(name: 'TARGET_SVR_USER', defaultValue: 'ec2-user', description: 'Target server user')
-    string(name: 'TARGET_SVR_IP', defaultValue: '10.0.3.163', description: 'Target server IP')
-    string(name: 'TARGET_SVR_PATH', defaultValue: '/home/ec2-user', description: 'Target server path')
+    string(name: 'TARGET_SVR_USER', defaultValue: 'root', description: 'Target server user')
+    string(name: 'TARGET_SVR_IP', defaultValue: '10.10.0.8', description: 'Target server IP')
+    string(name: 'TARGET_SVR_PATH', defaultValue: '/root', description: 'Target server path')
   }
 
   environment {
@@ -59,10 +59,6 @@ pipeline {
         expression { return params.PUSH_DOCKER_IMAGE }
       }
       steps {
-        // script{
-        //   env.DOCKER_ACCOUNT_PASSWORD = input message: "Enter the password for Docker Hub",
-        //     parameters: [password(name: 'DOCKER_ACCOUNT_PASSWORD', defaultValue: '', description: 'Docker Hub password')]
-        // }
         withCredentials([usernamePassword(credentialsId: 'dockerhub_jenkins', usernameVariable: 'DOCKER_ACCOUNT_ID', passwordVariable: 'DOCKER_ACCOUNT_PASSWORD')]) {
           sh """#!/bin/bash
             echo ${DOCKER_ACCOUNT_PASSWORD} | docker login -u ${DOCKER_ACCOUNT_ID} --password-stdin
@@ -81,25 +77,21 @@ pipeline {
         expression { return params.DEPLOY_WORKLOAD }
       }
       steps {
-        echo "Deploy workload"
-        // sshagent (credentials: ['aws_ssh']) {
-        //   sh'''
-        //     #!/bin/bash
+        sshagent (credentials: ['app-server']) {
+          sh """#!/bin/bash
 
-        //     scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-        //       deploy/docker-compose.yml \
-        //       ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP}:${params.TARGET_SVR_PATH}
+            scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+              pipeline/docker-compose.yml \
+              ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP}:${params.TARGET_SVR_PATH}
             
-        //     ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-        //       ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP} \
-        //       "aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}; \
-        //        export IMAGE=${params.DOCKER_IMAGE_NAME}; \
-        //        export TAG=${params.DOCKER_IMAGE_TAG}; \
-        //        docker-compose -f docker-compose.yml down; \
-        //        docker-compose -f docker-compose.yml up -d"
+            ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+              ${params.TARGET_SVR_USER}@${params.TARGET_SVR_IP} \
+              \"export IMAGE=${DOCKER_IMAGE}; \
+               docker-compose -f docker-compose.yml down; \
+               docker-compose -f docker-compose.yml up -d\"
 
-        //   '''
-        // }
+          """
+        }
       }
     }
   }
@@ -108,6 +100,20 @@ pipeline {
     cleanup {
       sh('docker image prune -f')
       sh('docker container prune -f')
+    }
+    success {
+      slackSend(
+        channel: "#jenkins",
+        color: "good",
+        message: "[Jenkins Pipeline Success] Job: ${env.JOB_NAME}, Build Num: ${env.BUILD_NUMBER}. (${env.RUN_DISPLAY_URL} | open job detail)"
+      )
+    }
+    failure {
+      slackSend(
+        channel: "#jenkins",
+        color: "danger",
+        message: "[Jenkins Pipeline Failure] Job: ${env.JOB_NAME}, Build Num: ${env.BUILD_NUMBER}. (${env.RUN_DISPLAY_URL} | open job detail)"
+      )
     }
   }
 

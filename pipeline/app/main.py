@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 app = Flask("Simple Flask App")
 
@@ -6,7 +6,7 @@ app = Flask("Simple Flask App")
 # create a new route to return a string
 @app.route("/")
 def home():
-    return "hello world!"
+    return f"/ => {request.query_string}"
 
 
 # create a new route to return html
@@ -28,5 +28,5 @@ def template():
 
 
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(host='0.0.0.0', port=8080)
 

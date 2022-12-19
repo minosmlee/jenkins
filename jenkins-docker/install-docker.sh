@@ -6,7 +6,7 @@ systemctl enable --now snapd.socket
 ln -sf /var/lib/snapd/snap /snap
 
 # install docker to use with jenkins
-snap install -y docker
+snap install docker
 groupadd -f docker
 chown root:docker /var/run/docker.sock
 
